@@ -1,0 +1,101 @@
+{
+  "name": "Pengingat Harian Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8,12,16,20 * * *"
+            }
+          ]
+        },
+        "timezone": "Asia/Jakarta"
+      },
+      "id": "b145f96a-adad-45d6-bc4b-1a5581096054",
+      "name": "Jadwal Pengingat",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45c12608-b3f1-4115-80fb-b75efc3d5216",
+              "name": "reminderText",
+              "type": "string",
+              "value": "={{ ({\"8\":\"☀️ Pagi! Jangan lupa check-in harian aplikasimu (MEC / Zoi) sebelum mulai aktivitas.\",\"12\":\"🕛 Siang! Sudah check-in siang ini? Sekalian minum air putih.\",\"16\":\"🌤️ Sore! Waktunya sync / check-in lagi kalau ada yang per 4 jam.\",\"20\":\"🌙 Malam! Check-in terakhir hari ini, terus istirahat.\"})[$now.hour] || '⏰ Waktunya check-in harian!' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fb2a53ec-8ead-4f48-870a-16372b049683",
+      "name": "Pilih Pengingat",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "ISI_CHAT_ID_TELEGRAM_ANDA",
+        "text": "={{ $json.reminderText }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "7f2d8bd4-febe-451c-85ad-1845ba308b5e",
+      "name": "Kirim Pengingat",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": null,
+          "name": "Telegram Bot — ISI TOKEN"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Jadwal Pengingat": {
+      "main": [
+        [
+          {
+            "node": "Pilih Pengingat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pilih Pengingat": {
+      "main": [
+        [
+          {
+            "node": "Kirim Pengingat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

@@ -1,0 +1,237 @@
+{
+  "name": "Radar Bounty & Testnet",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        },
+        "timezone": "Asia/Jakarta"
+      },
+      "id": "7df705e9-13d7-4d8d-9fa9-afe3b1ad7ec0",
+      "name": "Jadwal Pagi",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f19607b6-1073-417e-8197-7594ddf5ccfa",
+              "name": "urls",
+              "type": "array",
+              "value": "={{ ['https://make.fun/bounties', 'https://flop.finance/testnet'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "640cb1a8-6c32-4649-ad9b-99c1364ba90d",
+      "name": "Daftar URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "urls",
+        "options": {}
+      },
+      "id": "9e97e0af-71dd-4eb3-bdca-36ffe9897874",
+      "name": "Pecah URL",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; n8n-radar/1.0)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "13bbb732-d4b8-4069-b23f-35888f565446",
+      "name": "Ambil Halaman",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Bandingkan isi halaman dengan kunjungan sebelumnya.\n// Hash disimpan di workflow static data, jadi tetap ada walau n8n restart.\nconst crypto = require('crypto');\nconst item = $input.first().json;\nconst content = item.data || '';\nconst hash = crypto.createHash('sha256').update(content).digest('hex');\nconst staticData = $getWorkflowStaticData('global');\nconst url = item.url;\nconst prev = staticData[url];\nconst firstRun = prev === undefined;\nstaticData[url] = hash;\nreturn [{\n  json: {\n    url,\n    hash,\n    changed: !firstRun && prev !== hash,\n    firstRun,\n    length: content.length,\n  },\n}];"
+      },
+      "id": "c3af3a15-079a-40f2-a17e-833fd91b87ea",
+      "name": "Hitung Hash & Bandingkan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "86d3c712-9fec-4979-8285-a866cba195c3",
+              "leftValue": "={{ $json.changed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "name": "filter.operator.boolean.true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "id": "95b7c6fd-2d08-4912-bc78-1f5afee4a13a",
+      "name": "Ada Perubahan?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "ISI_CHAT_ID_TELEGRAM_ANDA",
+        "text": "=🔔 Ada perubahan di {{ $json.url }}\n\nHash baru: {{ $json.hash }}\nPanjang konten: {{ $json.length }} karakter\n\nCek langsung: {{ $json.url }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "00a38656-f23a-46fd-b85f-6587be755477",
+      "name": "Kirim Alert Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1560,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": null,
+          "name": "Telegram Bot — ISI TOKEN"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Jadwal Pagi": {
+      "main": [
+        [
+          {
+            "node": "Daftar URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daftar URL": {
+      "main": [
+        [
+          {
+            "node": "Pecah URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pecah URL": {
+      "main": [
+        [
+          {
+            "node": "Ambil Halaman",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil Halaman": {
+      "main": [
+        [
+          {
+            "node": "Hitung Hash & Bandingkan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hitung Hash & Bandingkan": {
+      "main": [
+        [
+          {
+            "node": "Ada Perubahan?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ada Perubahan?": {
+      "main": [
+        [
+          {
+            "node": "Kirim Alert Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
